@@ -5,7 +5,7 @@ extern crate test;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sequence_perf::{sequence_idiomatic, sequence, sequence2};
+    use sequence_perf::{sequence_idiomatic, sequence, sequence2, sequence_by_row, sequence_by_column, sequence_by_rc};
     use itertools::Itertools;
     use test::{Bencher, black_box};
 
@@ -48,5 +48,27 @@ mod tests {
         })
     }
 
+    #[bench]
+    fn sequence_by_row_test(b: &mut Bencher) {
+        let all = all();
+        b.iter(|| {
+            sequence_by_row(&all)
+        })
+    }
 
+    #[bench]
+    fn sequence_by_column_test(b: &mut Bencher) {
+        let all = all();
+        b.iter(|| {
+            sequence_by_column(&all)
+        })
+    }
+
+    #[bench]
+    fn sequence_by_rc_test(b: &mut Bencher) {
+        let all = all();
+        b.iter(|| {
+            sequence_by_rc(&all)
+        })
+    }
 }
