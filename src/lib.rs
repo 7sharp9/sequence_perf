@@ -1,14 +1,16 @@
 pub fn sequence_idiomatic<T>(v: &[Vec<T>]) -> Vec<Vec<&T>> {
     if let Some((item, items)) = v.split_first() {
         let state = sequence_idiomatic(items);
-        item.iter().map(|x| {
-            state.iter().map(|xs| {
+        let mut result = Vec::with_capacity(item.len() * state.len());
+        for x in item {
+            for xs in &state {
                 let mut v = Vec::with_capacity(xs.len() + 1);
                 v.push(x);
                 v.extend(xs);
-                v
-            }).flat_map(|f| f.into_iter()).collect::<Vec<_>>()
-        }).collect()
+                result.push(v)
+            }
+        }
+        result
     } else {
         vec![vec![]]
     }
