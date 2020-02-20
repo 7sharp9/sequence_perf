@@ -130,3 +130,53 @@ fn folder<'a, T>(state: Vec<Rc<RcChain<'a, T>>>, item: &'a Vec<T>) -> Vec<Rc<RcC
 pub fn sequence_by_rc<T>(v: &[Vec<T>]) -> Vec<Rc<RcChain<T>>> {
     v.iter().rfold(vec![Rc::new(RcChain::Nil)], folder)
 }
+
+#[inline]
+fn set_counter_to<T>(counter: &mut [usize], v: &[Vec<T>], val: usize) {
+    let mut val = val;
+    for (max, cntr) in v.iter().map(|vi| vi.len()).zip(counter).rev() {
+        *cntr = val % max;
+        val = val / max;
+    }
+}
+
+fn sequence_by_row_task<'a, 'b, T>(v: &'a [Vec<T>], out: &'b mut [Vec<&'a T>], off: usize) {
+    let mut counter = vec![0; v.len()];
+    set_counter_to(&mut counter, v, off);
+    for vec in out {
+        for (vi, idx) in v.iter().zip(&counter) {
+            vec.push(&vi[*idx]);
+        }
+        incr_counter(&mut counter, v);
+    }
+}
+
+fn sequence_by_row_join<'a, 'b, T: Send + Sync>(v: &'a [Vec<T>], out: &'b mut [Vec<&'a T>], off: usize, num: usize) {
+    if num == 1 {
+        return sequence_by_row_task(v, out, off);
+    }
+    let left_len = out.len() / 2;
+    let right_len = out.len() - left_len;
+    let (left, right) = out.split_at_mut(left_len);
+    rayon::join(
+        || {
+            sequence_by_row_join(v, left, off, left_len);
+        },
+        || {
+            sequence_by_row_join(v, right, off + left_len, right_len);
+        },
+    );
+}
+
+pub fn sequence_by_row_rayon<T: Send + Sync>(v: &[Vec<T>]) -> Vec<Vec<&T>> {
+    let count: usize = v.iter().map(|v| v.len()).product();
+
+    let mut res = Vec::with_capacity(count);
+    for _ in 0..count {
+        res.push(Vec::with_capacity(v.len()));
+    }
+
+    sequence_by_row_join(v, &mut res, 0, rayon::current_num_threads());
+
+    res
+}
